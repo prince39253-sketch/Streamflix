@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Streamflix – Watch Movies & Series</title>
+<style>
+:root{--red:#e50914;--bg:#141414;--card:#181818;--text:#fff;--muted:#b3b3b3}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;overflow-x:hidden}
+button{font:inherit;cursor:pointer;border:0;color:inherit;background:none}
+a{color:inherit;text-decoration:none}
+
+/* ---------- NAV ---------- */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:16px 4%;background:linear-gradient(180deg,rgba(0,0,0,.85),transparent);transition:background .4s}
+.nav.solid{background:var(--bg)}
+.nav-left{display:flex;align-items:center;gap:34px}
+.logo{color:var(--red);font-weight:900;font-size:clamp(22px,3vw,32px);letter-spacing:-1px}
+.links{display:flex;gap:20px;font-size:14px}
+.links a{color:#e5e5e5;transition:color .3s}.links a:hover,.links a.on{color:#fff;font-weight:600}
+.nav-right{display:flex;align-items:center;gap:18px}
+.search{display:flex;align-items:center;border:1px solid transparent;padding:4px 8px;transition:.3s}
+.search.open{border-color:#fff;background:rgba(0,0,0,.7)}
+.search input{width:0;border:0;outline:0;background:none;color:#fff;font-size:14px;transition:width .35s;padding:0}
+.search.open input{width:200px;padding:4px 8px}
+.search svg{width:22px;height:22px;fill:#fff;cursor:pointer}
+.avatar{width:32px;height:32px;border-radius:4px;background:linear-gradient(135deg,#e50914,#7b1fa2);display:grid;place-items:center;font-weight:700;font-size:14px}
+.burger{display:none;font-size:26px}
+
+/* ---------- HERO ---------- */
+.hero{position:relative;height:88vh;min-height:520px;display:flex;align-items:flex-end;overflow:hidden}
+.hero-slide{position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease;display:flex;align-items:flex-end;pointer-events:none}
+.hero-slide.on{pointer-events:auto}
+.hero-slide.on{opacity:1}
+.hero-art{position:absolute;inset:0}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,20,20,.4) 0%,transparent 35%,var(--bg) 100%),linear-gradient(90deg,rgba(0,0,0,.75),transparent 60%);z-index:1}
+.hero-info{position:relative;z-index:2;padding:0 4% 12vh;max-width:640px}
+.hero-info h1{font-size:clamp(38px,6.5vw,84px);font-weight:900;line-height:.95;letter-spacing:-2px;margin-bottom:16px;text-shadow:0 4px 20px rgba(0,0,0,.6)}
+.hero-meta{display:flex;gap:12px;align-items:center;font-size:14px;margin-bottom:14px;color:#ddd}
+.match{color:#46d369;font-weight:700}
+.age{border:1px solid #888;padding:0 6px;font-size:12px}
+.hero-info p{font-size:clamp(14px,1.5vw,19px);line-height:1.45;margin-bottom:22px;text-shadow:0 2px 8px rgba(0,0,0,.7);max-width:560px}
+.btns{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:10px 26px;border-radius:5px;font-weight:700;font-size:clamp(14px,1.4vw,19px);transition:.25s}
+.btn svg{width:22px;height:22px;fill:currentColor}
+.btn.play{background:#fff;color:#000}.btn.play:hover{background:rgba(255,255,255,.75)}
+.btn.info{background:rgba(109,109,110,.7)}.btn.info:hover{background:rgba(109,109,110,.45)}
+.hero-dots{position:absolute;right:4%;bottom:14vh;z-index:3;display:flex;gap:8px}
+.hero-dots span{width:30px;height:4px;background:rgba(255,255,255,.35);cursor:pointer;transition:.3s}
+.hero-dots span.on{background:#fff}
+
+/* ---------- ROWS ---------- */
+main{position:relative;z-index:5;margin-top:-9vh;padding-bottom:40px}
+.row{margin-bottom:34px;position:relative}
+.row:hover{z-index:30}
+.row h2{font-size:clamp(17px,1.9vw,24px);font-weight:700;padding:0 4%;margin-bottom:10px;color:#e5e5e5}
+.track-wrap{position:relative}
+.track{display:flex;gap:6px;overflow-x:auto;scroll-behavior:smooth;padding:30px 4% 110px;margin:-30px 0 -110px;scrollbar-width:none}
+.track::-webkit-scrollbar{display:none}
+.arrow{position:absolute;top:30px;bottom:110px;width:4%;z-index:6;background:rgba(20,20,20,.55);display:grid;place-items:center;opacity:0;transition:opacity .3s,background .3s;font-size:34px}
+.arrow:hover{background:rgba(20,20,20,.85)}
+.track-wrap:hover .arrow{opacity:1}
+.arrow.l{left:0}.arrow.r{right:0}
+
+.card{position:relative;flex:0 0 auto;width:clamp(150px,17vw,260px);aspect-ratio:16/9;border-radius:5px;transition:transform .35s ease,box-shadow .35s;cursor:pointer;transform-origin:center}
+.card .poster{position:absolute;inset:0;border-radius:5px;overflow:hidden}
+.poster-art{position:absolute;inset:0;display:flex;align-items:flex-end;padding:10px;font-weight:800;font-size:clamp(13px,1.3vw,18px);text-shadow:0 2px 8px rgba(0,0,0,.7);background-size:cover}
+.card:hover{transform:scale(1.28);z-index:20;box-shadow:0 12px 40px rgba(0,0,0,.8)}
+.card:first-child:hover{transform-origin:left center}
+.card:last-child:hover{transform-origin:right center}
+.pop{position:absolute;left:0;right:0;top:100%;background:var(--card);padding:10px;border-radius:0 0 5px 5px;opacity:0;pointer-events:none;transition:opacity .25s;box-shadow:0 14px 30px rgba(0,0,0,.7)}
+.card:hover .pop{opacity:1;pointer-events:auto}
+.pop-btns{display:flex;gap:6px;margin-bottom:8px}
+.ic{width:28px;height:28px;border-radius:50%;border:2px solid #888;display:grid;place-items:center;transition:.2s}
+.ic svg{width:14px;height:14px;fill:#fff}
+.ic:hover{border-color:#fff}.ic.fill{background:#fff;border-color:#fff}.ic.fill svg{fill:#000}
+.ic.added{border-color:#46d369}
+.pop-meta{font-size:11px;display:flex;gap:8px;align-items:center;margin-bottom:4px}
+.pop-tags{font-size:11px;color:#ccc}
+
+/* top 10 */
+.top .card{width:auto;aspect-ratio:auto;height:clamp(110px,12.4vw,175px);display:flex;align-items:center}
+.top .num{font-size:clamp(110px,15vw,210px);font-weight:900;line-height:.8;color:#141414;-webkit-text-stroke:3px #595959;letter-spacing:-12px;flex:0 0 auto;margin-right:-34px;margin-left:8px;position:relative;z-index:0}
+.top .poster{position:relative;inset:auto;width:clamp(90px,9.6vw,135px);aspect-ratio:2/3;height:auto;margin-left:0;z-index:1;flex:0 0 auto}
+.top .card:hover{transform:scale(1.12)}
+.top .pop{display:none}
+.empty{padding:0 4%;color:var(--muted);font-size:15px}
+
+/* ---------- MODAL ---------- */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:grid;place-items:start center;overflow-y:auto;padding:4vh 16px}
+.modal[hidden]{display:none}
+.m-box{background:var(--card);width:min(860px,100%);border-radius:8px;overflow:hidden;position:relative;animation:pop .35s ease both}
+.m-art{position:relative;height:clamp(220px,40vw,420px)}
+.m-art::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,var(--card))}
+.m-art .art{position:absolute;inset:0}
+.m-x{position:absolute;top:14px;right:14px;z-index:5;width:38px;height:38px;border-radius:50%;background:#181818;display:grid;place-items:center;font-size:18px}
+.m-x:hover{background:#333}
+.m-head{position:absolute;left:36px;bottom:24px;z-index:3;right:36px}
+.m-head h2{font-size:clamp(28px,5vw,52px);font-weight:900;letter-spacing:-1px;margin-bottom:14px}
+.m-body{padding:10px 36px 36px;display:grid;grid-template-columns:2fr 1fr;gap:28px}
+.m-body p{line-height:1.55;font-size:15px}
+.m-side{font-size:13px;color:var(--muted);line-height:1.9}
+.m-side b{color:#777;font-weight:400}
+.m-side span{color:#fff}
+.m-more{padding:0 36px 36px}
+.m-more h3{font-size:20px;margin-bottom:14px}
+.m-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.m-grid .card{width:auto;transform:none!important}
+.m-grid .card:hover{transform:scale(1.04)!important}
+.m-grid .pop{display:none}
+
+/* player */
+.player{position:fixed;inset:0;background:#000;z-index:200;display:grid;place-items:center}
+.player[hidden]{display:none}
+.player-art{position:absolute;inset:0;opacity:.5;animation:pan 18s ease-in-out infinite alternate}
+.player h3{position:relative;font-size:clamp(24px,4vw,44px);text-align:center;padding:0 20px}
+.player small{display:block;margin-top:10px;color:#bbb;font-size:14px;font-weight:400}
+.p-bar{position:absolute;left:5%;right:5%;bottom:40px;height:5px;background:#555;border-radius:3px}
+.p-bar i{display:block;height:100%;width:0;background:var(--red);border-radius:3px;animation:prog 60s linear forwards}
+.p-back{position:absolute;top:24px;left:24px;z-index:3;font-size:30px;padding:8px 14px}
+
+/* ---------- FOOTER ---------- */
+footer{padding:40px 4% 60px;color:#808080;font-size:13px;max-width:1000px;margin:0 auto}
+.f-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:18px 0 24px}
+.f-links a:hover{text-decoration:underline}
+.toast{position:fixed;left:50%;bottom:30px;transform:translate(-50%,30px);background:#fff;color:#000;padding:12px 22px;border-radius:6px;font-weight:600;opacity:0;pointer-events:none;transition:.35s;z-index:300}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@keyframes pan{from{transform:scale(1)}to{transform:scale(1.2)}}
+@keyframes prog{to{width:100%}}
+
+@media(max-width:820px){
+  .links{display:none;position:absolute;top:100%;left:0;right:0;background:rgba(0,0,0,.95);flex-direction:column;padding:16px 4%;gap:16px}
+  .links.open{display:flex}
+  .burger{display:block}
+  .arrow{display:none}
+  .card:hover{transform:none;box-shadow:none}
+  .pop{display:none}
+  .m-body{grid-template-columns:1fr;padding:10px 20px 28px}
+  .m-head{left:20px;right:20px}
+  .m-more{padding:0 20px 28px}
+  .hero-dots{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="nav-left">
+    <button class="burger" id="burger" aria-label="Menu">☰</button>
+    <a href="#" class="logo">STREAMFLIX</a>
+    <nav class="links" id="links">
+      <a href="#" class="on" data-go="top">Home</a>
+      <a href="#" data-go="series">Series</a>
+      <a href="#" data-go="movies">Movies</a>
+      <a href="#" data-go="new">New & Popular</a>
+      <a href="#" data-go="mylist">My List</a>
+    </nav>
+  </div>
+  <div class="nav-right">
+    <div class="search" id="search">
+      <input id="q" type="text" placeholder="Titles, genres, people" autocomplete="off">
+      <svg id="searchBtn" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    </div>
+    <div class="avatar" title="Profile">Y</div>
+  </div>
+</header>
+
+<section class="hero" id="hero"></section>
+
+<main id="rows"></main>
+
+<footer>
+  <div class="f-links">
+    <a href="#">Audio Description</a><a href="#">Help Centre</a><a href="#">Gift Cards</a><a href="#">Media Centre</a>
+    <a href="#">Investor Relations</a><a href="#">Jobs</a><a href="#">Terms of Use</a><a href="#">Privacy</a>
+    <a href="#">Legal Notices</a><a href="#">Cookie Preferences</a><a href="#">Contact Us</a>
+  </div>
+  <p>© <span id="yr"></span> Streamflix. A learning project — all titles are fictional placeholders.</p>
+</footer>
+
+<div class="modal" id="modal" hidden></div>
+<div class="player" id="player" hidden></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ======================================================
+   DATA  –  edit freely.
+   `img` is optional: put a poster URL there and it will
+   replace the gradient artwork.
+   ====================================================== */
+const T = (id,name,tag,genres,year,len,age,match,c1,c2,desc,type='movie',img='') =>
+  ({id,name,tag,genres,year,len,age,match,c1,c2,desc,type,img});
+
+const TITLES = [
+  T(1,'Midnight Signal','Sci-Fi Thriller',['Sci-Fi','Thriller','Mystery'],2026,'2 Seasons','16+',98,'#312e81','#7e22ce','A signal from deep space rewrites everything one crew thought they knew about home.','series'),
+  T(2,'The Last Ember','Drama',['Drama','Family','Period'],2025,'1h 58m','13+',95,'#9a3412','#b91c1c','In a village fading from the map, one family lights a fire that refuses to die.'),
+  T(3,'Glass Horizon','Mystery',['Mystery','Crime','Thriller'],2026,'1 Season','16+',93,'#164e63','#1d4ed8','A detective chases a missing skyline architect across a city built on secrets.','series'),
+  T(4,'Wolf & Crown','Fantasy',['Fantasy','Adventure','Epic'],2024,'3 Seasons','16+',96,'#064e3b','#15803d','Two rival heirs. One cursed throne. A winter that will not end.','series'),
+  T(5,'Static City','Crime',['Crime','Drama','Noir'],2025,'2h 11m','18+',91,'#1f2937','#475569','When the power grid fails for one night, every secret in the city comes out.'),
+  T(6,'Paper Moths','Romance',['Romance','Drama','Comedy'],2026,'1h 46m','13+',89,'#831843','#be123c','Two night-shift librarians discover that love letters are never really lost.'),
+  T(7,'Concrete Rain','Noir',['Noir','Crime','Drama'],2023,'1 Season','18+',90,'#0f172a','#3f3f46','A rain-soaked city, a broken badge and one case that will not stay closed.','series'),
+  T(8,'Hollow Precinct','Crime',['Crime','Thriller','Drama'],2024,'2 Seasons','16+',92,'#450a0a','#991b1b','Inside a failing police station, nobody is quite who their file says they are.','series'),
+  T(9,'Nightshift','Thriller',['Thriller','Horror','Mystery'],2026,'1h 39m','16+',87,'#2e1065','#6d28d9','A hospital cleaner notices the same patient dying every Tuesday.'),
+  T(10,'The Informant','Drama',['Drama','Crime','Biography'],2025,'2h 04m','16+',94,'#78350f','#a16207','Based on the true story of the man who took down a city from the inside.'),
+  T(11,'Backchannel','Espionage',['Spy','Thriller','Action'],2024,'2 Seasons','16+',88,'#042f2e','#0f766e','Two rival agents share a single phone line — and a single dangerous secret.','series'),
+  T(12,'Low Tide','Mystery',['Mystery','Drama','Coastal'],2026,'1h 52m','13+',86,'#172554','#0369a1','Every low tide, the sea gives back something a small town tried to bury.'),
+  T(13,'Ashfall','Disaster',['Disaster','Action','Drama'],2026,'2h 18m','13+',85,'#431407','#c2410c','Twelve hours to cross a collapsing city. One family. No second chances.'),
+  T(14,'Kindred Static','Sci-Fi',['Sci-Fi','Drama','Mind-bending'],2026,'1 Season','16+',91,'#4a044e','#a21caf','Siblings separated by decades trade messages through a broken radio.','series'),
+  T(15,'Blue Hour','Drama',['Drama','Romance','Music'],2025,'1h 44m','13+',90,'#1e3a8a','#4338ca','A retired pianist and a street singer share one last sunrise concert.'),
+  T(16,'The Cartographer','Adventure',['Adventure','Family','Fantasy'],2026,'1h 57m','7+',93,'#1a2e05','#4d7c0f','A map-maker’s apprentice finds a country that is not on any chart.'),
+  T(17,'Salt & Circuit','Cyberpunk',['Cyberpunk','Action','Sci-Fi'],2026,'2 Seasons','18+',89,'#3b0764','#7e22ce','Smugglers, rogue AI and a harbour that never sleeps.','series'),
+  T(18,'Rooftop Season','Comedy',['Comedy','Friendship','Slice of life'],2025,'3 Seasons','13+',94,'#713f12','#ca8a04','Five neighbours, one rooftop and a summer that changes everything.','series'),
+  T(19,'Iron Monsoon','Action',['Action','Thriller','Heist'],2026,'2h 07m','16+',92,'#111827','#b91c1c','A crew has one monsoon night to rob the city’s most guarded vault.'),
+  T(20,'Orbit Café','Comedy',['Comedy','Sci-Fi','Romance'],2025,'1 Season','13+',88,'#0c4a6e','#0e7490','The only café on a space station — and its very awkward regulars.','series')
+];
+
+const ROWS = [
+  {key:'trending',title:'Trending Now',ids:[1,2,3,4,5,6,19,20]},
+  {key:'top',title:'Top 10 in Your Country Today',ids:[4,1,18,10,3,16,2,14,19,8],top:true},
+  {key:'series',title:'Binge-worthy Series',filter:t=>t.type==='series'},
+  {key:'because',title:'Because You Watched Static City',ids:[7,8,9,10,11,12]},
+  {key:'new',title:'New Releases',ids:[13,14,15,16,17,18]},
+  {key:'movies',title:'Blockbuster Movies',filter:t=>t.type==='movie'},
+  {key:'mylist',title:'My List',mine:true}
+];
+
+const FEATURED = [1,4,10,16];
+
+/* ---------- helpers ---------- */
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const byId = id => TITLES.find(t=>t.id===id);
+const art = t => t.img
+  ? `background:url('${t.img}') center/cover`
+  : `background:radial-gradient(circle at 80% 15%,rgba(255,255,255,.18),transparent 45%),linear-gradient(135deg,${t.c1},${t.c2})`;
+const ICON = {
+  play:'<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+  info:'<svg viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/></svg>',
+  plus:'<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg>',
+  check:'<svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>',
+  like:'<svg viewBox="0 0 24 24"><path d="M1 21h4V9H1zm22-11a2 2 0 0 0-2-2h-6.3l1-4.6v-.3a1.5 1.5 0 0 0-.4-1L14.2 1 7.6 7.6A2 2 0 0 0 7 9v10a2 2 0 0 0 2 2h9a2 2 0 0 0 1.8-1.2l3-7a2 2 0 0 0 .2-.8z"/></svg>',
+  down:'<svg viewBox="0 0 24 24"><path d="m12 16-6-6h12z"/></svg>'
+};
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2200)}
+
+/* ---------- My List (saved in the browser) ---------- */
+let mine = [];
+try{ mine = JSON.parse(localStorage.getItem('sf_list')||'[]') }catch(e){}
+const saveList=()=>{ try{localStorage.setItem('sf_list',JSON.stringify(mine))}catch(e){} };
+function toggleList(id){
+  const i=mine.indexOf(id);
+  if(i>-1){mine.splice(i,1);toast('Removed from My List')}else{mine.push(id);toast('Added to My List')}
+  saveList(); renderRows(); if(!$('#modal').hidden) refreshModalBtn(id);
+}
+
+/* ---------- HERO ---------- */
+const hero=$('#hero'); let hi=0, ht;
+hero.innerHTML = FEATURED.map((id,i)=>{
+  const t=byId(id);
+  return `<div class="hero-slide${i?'':' on'}" data-i="${i}">
+    <div class="hero-art" style="${art(t)}"></div>
+    <div class="hero-info">
+      <div class="hero-meta"><span class="match">${t.match}% Match</span><span>${t.year}</span><span class="age">${t.age}</span><span>${t.len}</span></div>
+      <h1>${t.name}</h1>
+      <p>${t.desc}</p>
+      <div class="btns">
+        <button class="btn play" data-play="${t.id}">${ICON.play} Play</button>
+        <button class="btn info" data-info="${t.id}">${ICON.info} More Info</button>
+      </div>
+    </div>
+  </div>`;
+}).join('') + `<div class="hero-dots">${FEATURED.map((_,i)=>`<span class="${i?'':'on'}" data-dot="${i}"></span>`).join('')}</div>`;
+function goHero(i){
+  hi=(i+FEATURED.length)%FEATURED.length;
+  $$('.hero-slide').forEach((s,k)=>s.classList.toggle('on',k===hi));
+  $$('.hero-dots span').forEach((s,k)=>s.classList.toggle('on',k===hi));
+  clearInterval(ht); ht=setInterval(()=>goHero(hi+1),7000);
+}
+hero.addEventListener('click',e=>{const d=e.target.closest('[data-dot]'); if(d) goHero(+d.dataset.dot)});
+goHero(0);
+
+/* ---------- ROWS ---------- */
+let query='';
+function cardHTML(t,idx,top){
+  const added = mine.includes(t.id);
+  return `<div class="card" data-id="${t.id}">
+    ${top?`<span class="num">${idx+1}</span>`:''}
+    <div class="poster"><div class="poster-art" style="${art(t)}">${t.img?'':t.name}</div></div>
+    <div class="pop">
+      <div class="pop-btns">
+        <button class="ic fill" data-play="${t.id}" title="Play">${ICON.play}</button>
+        <button class="ic${added?' added':''}" data-list="${t.id}" title="${added?'Remove from My List':'Add to My List'}">${added?ICON.check:ICON.plus}</button>
+        <button class="ic" data-like="${t.id}" title="I like this">${ICON.like}</button>
+        <button class="ic" data-info="${t.id}" title="More info" style="margin-left:auto">${ICON.down}</button>
+      </div>
+      <div class="pop-meta"><span class="match">${t.match}% Match</span><span class="age">${t.age}</span><span>${t.len}</span></div>
+      <div class="pop-tags">${t.genres.join(' • ')}</div>
+    </div>
+  </div>`;
+}
+function renderRows(){
+  const q=query.trim().toLowerCase();
+  const wrap=$('#rows'); const keep=wrap.scrollTop;
+  let html='';
+  if(q){
+    const res=TITLES.filter(t=>(t.name+' '+t.tag+' '+t.genres.join(' ')).toLowerCase().includes(q));
+    html=`<section class="row"><h2>${res.length?`Results for “${q.replace(/</g,'')}”`:`No results for “${q.replace(/</g,'')}”`}</h2>
+      ${res.length?`<div class="track-wrap"><div class="track" style="flex-wrap:wrap;overflow:visible;margin:0;padding-bottom:20px">${res.map((t,i)=>cardHTML(t,i)).join('')}</div></div>`:'<p class="empty">Try another title, genre or mood.</p>'}</section>`;
+    wrap.innerHTML=html; return;
+  }
+  ROWS.forEach(r=>{
+    const list = r.mine ? mine.map(byId) : r.ids ? r.ids.map(byId) : TITLES.filter(r.filter);
+    html+=`<section class="row${r.top?' top':''}" id="row-${r.key}"><h2>${r.title}</h2>`;
+    if(!list.length){ html+='<p class="empty">Tap the + on any title to save it here.</p></section>'; return; }
+    html+=`<div class="track-wrap"><button class="arrow l" data-dir="-1" aria-label="Previous">‹</button>
+      <div class="track">${list.map((t,i)=>cardHTML(t,i,r.top)).join('')}</div>
+      <button class="arrow r" data-dir="1" aria-label="Next">›</button></div></section>`;
+  });
+  wrap.innerHTML=html;
+}
+renderRows();
+
+/* arrows + card actions (event delegation) */
+document.addEventListener('click',e=>{
+  const a=e.target.closest('.arrow');
+  if(a){const tr=a.parentElement.querySelector('.track');tr.scrollBy({left:+a.dataset.dir*tr.clientWidth*.85});return}
+  const p=e.target.closest('[data-play]'); if(p){e.stopPropagation();play(+p.dataset.play);return}
+  const l=e.target.closest('[data-list]'); if(l){e.stopPropagation();toggleList(+l.dataset.list);return}
+  const k=e.target.closest('[data-like]'); if(k){e.stopPropagation();k.classList.toggle('fill');toast(k.classList.contains('fill')?'Thanks! We’ll recommend more like this':'Rating removed');return}
+  const i=e.target.closest('[data-info]'); if(i){e.stopPropagation();openModal(+i.dataset.info);return}
+  const c=e.target.closest('.card'); if(c&&!c.closest('.m-grid')){openModal(+c.dataset.id);return}
+  if(c&&c.closest('.m-grid')){openModal(+c.dataset.id);return}
+});
+
+/* ---------- MODAL ---------- */
+function openModal(id){
+  const t=byId(id), m=$('#modal');
+  const more=TITLES.filter(x=>x.id!==id && x.genres.some(g=>t.genres.includes(g))).slice(0,6);
+  m.innerHTML=`<div class="m-box">
+    <button class="m-x" id="mx" aria-label="Close">✕</button>
+    <div class="m-art"><div class="art" style="${art(t)}"></div>
+      <div class="m-head"><h2>${t.name}</h2>
+        <div class="btns"><button class="btn play" data-play="${t.id}">${ICON.play} Play</button>
+        <button class="ic" id="mList" data-list="${t.id}" style="width:44px;height:44px"></button></div></div></div>
+    <div class="m-body">
+      <div><div class="hero-meta"><span class="match">${t.match}% Match</span><span>${t.year}</span><span class="age">${t.age}</span><span>${t.len}</span></div>
+      <p>${t.desc} ${t.type==='series'?'Every episode is a cliff-hanger.':'A story you will want to watch twice.'}</p></div>
+      <div class="m-side"><b>Genres:</b> <span>${t.genres.join(', ')}</span><br><b>This is:</b> <span>${t.tag}</span><br><b>Type:</b> <span>${t.type==='series'?'Series':'Movie'}</span></div>
+    </div>
+    <div class="m-more"><h3>More Like This</h3><div class="m-grid">${more.map(x=>cardHTML(x,0)).join('')}</div></div>
+  </div>`;
+  m.hidden=false; document.body.style.overflow='hidden'; m.scrollTop=0; refreshModalBtn(id);
+}
+function refreshModalBtn(id){
+  const b=$('#mList'); if(!b) return; const on=mine.includes(id);
+  b.innerHTML=on?ICON.check:ICON.plus; b.classList.toggle('added',on);
+}
+function closeModal(){$('#modal').hidden=true;document.body.style.overflow=''}
+$('#modal').addEventListener('click',e=>{ if(e.target.id==='modal'||e.target.id==='mx') closeModal() });
+
+/* ---------- PLAYER (demo) ---------- */
+function play(id){
+  const t=byId(id), p=$('#player');
+  p.innerHTML=`<div class="player-art" style="${art(t)}"></div>
+    <button class="p-back" id="pb" aria-label="Back">←</button>
+    <h3>${t.name}<small>Now playing · demo player (add your own video here)</small></h3>
+    <div class="p-bar"><i></i></div>`;
+  p.hidden=false; document.body.style.overflow='hidden';
+}
+$('#player').addEventListener('click',e=>{ if(e.target.id==='pb'){ $('#player').hidden=true; document.body.style.overflow=$('#modal').hidden?'':'hidden'; } });
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ if(!$('#player').hidden){$('#pb').click()} else if(!$('#modal').hidden){closeModal()} else {$('#search').classList.remove('open')} }
+});
+
+/* ---------- NAV ---------- */
+const nav=$('#nav');
+addEventListener('scroll',()=>nav.classList.toggle('solid',scrollY>40),{passive:true});
+$('#burger').onclick=()=>$('#links').classList.toggle('open');
+$$('#links a').forEach(a=>a.addEventListener('click',e=>{
+  e.preventDefault();
+  $$('#links a').forEach(x=>x.classList.remove('on')); a.classList.add('on');
+  $('#links').classList.remove('open');
+  query=''; $('#q').value=''; renderRows();
+  const g=a.dataset.go, map={series:'row-series',movies:'row-movies',new:'row-new',mylist:'row-mylist'};
+  if(g==='top') scrollTo({top:0,behavior:'smooth'});
+  else{ const el=document.getElementById(map[g]); if(el) scrollTo({top:el.getBoundingClientRect().top+scrollY-90,behavior:'smooth'}); }
+}));
+const sb=$('#search');
+$('#searchBtn').onclick=()=>{ sb.classList.toggle('open'); if(sb.classList.contains('open')) $('#q').focus(); };
+$('#q').addEventListener('input',e=>{ query=e.target.value; renderRows(); if(query) scrollTo({top:hero.offsetHeight*.55,behavior:'smooth'}); });
+$('#yr').textContent=new Date().getFullYear();
+</script>
+</body>
+</html>
